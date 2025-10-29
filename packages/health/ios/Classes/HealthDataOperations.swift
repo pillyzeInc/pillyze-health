@@ -61,12 +61,22 @@ class HealthDataOperations {
                 result(false)
                 return
             }
-            
+
             let success = hasPermission(type: sampleType, access: permissions[index])
             if success == nil || success == false {
                 result(success)
                 return
             }
+
+            // If WORKOUT type, also check workoutRoute permission
+            if type == HealthConstants.WORKOUT {
+                let routeSuccess = hasPermission(type: HKSeriesType.workoutRoute(), access: 0) // Read only
+                if routeSuccess == nil || routeSuccess == false {
+                    result(routeSuccess)
+                    return
+                }
+            }
+
             if let characteristicType = characteristicsTypesDict[type] {
                 let characteristicSuccess = hasPermission(type: characteristicType, access: permissions[index])
                 if (characteristicSuccess == nil || characteristicSuccess == false) {
@@ -132,11 +142,23 @@ class HealthDataOperations {
                     switch access {
                     case 0:
                         typesToRead.insert(dataType)
+                        // If WORKOUT is requested for read, also add workoutRoute
+                        if key == HealthConstants.WORKOUT {
+                            typesToRead.insert(HKSeriesType.workoutRoute())
+                        }
                     case 1:
                         typesToWrite.insert(dataType)
+                        // If WORKOUT is requested for write, also add workoutRoute for read
+                        if key == HealthConstants.WORKOUT {
+                            typesToRead.insert(HKSeriesType.workoutRoute())
+                        }
                     default:
                         typesToRead.insert(dataType)
                         typesToWrite.insert(dataType)
+                        // If WORKOUT is requested, also add workoutRoute for read
+                        if key == HealthConstants.WORKOUT {
+                            typesToRead.insert(HKSeriesType.workoutRoute())
+                        }
                     }
                 }
                 
