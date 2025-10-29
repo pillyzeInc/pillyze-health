@@ -281,9 +281,23 @@ class HealthDataOperations(
                 permList.add(
                     HealthPermission.getReadPermission(dataType),
                 )
-                // If WORKOUT is requested, also add exercise route read permission
+                // If WORKOUT is requested, also add related permissions needed for workout data
                 if (typeKey == HealthConstants.WORKOUT) {
                     permList.add("android.permission.health.READ_EXERCISE_ROUTES")
+                    // Add permissions for distance, calories, and steps that are read during workout query
+                    val distanceType = HealthConstants.mapToType[HealthConstants.DISTANCE_DELTA]
+                    val caloriesType = HealthConstants.mapToType[HealthConstants.TOTAL_CALORIES_BURNED]
+                    val stepsType = HealthConstants.mapToType[HealthConstants.STEPS]
+
+                    if (distanceType != null) {
+                        permList.add(HealthPermission.getReadPermission(distanceType))
+                    }
+                    if (caloriesType != null) {
+                        permList.add(HealthPermission.getReadPermission(caloriesType))
+                    }
+                    if (stepsType != null) {
+                        permList.add(HealthPermission.getReadPermission(stepsType))
+                    }
                 }
             } else {
                 // Read and write permissions
@@ -293,9 +307,23 @@ class HealthDataOperations(
                         HealthPermission.getWritePermission(dataType),
                     ),
                 )
-                // If WORKOUT is requested, also add exercise route read permission
+                // If WORKOUT is requested, also add related permissions needed for workout data
                 if (typeKey == HealthConstants.WORKOUT) {
                     permList.add("android.permission.health.READ_EXERCISE_ROUTES")
+                    // Add permissions for distance, calories, and steps that are read during workout query
+                    val distanceType = HealthConstants.mapToType[HealthConstants.DISTANCE_DELTA]
+                    val caloriesType = HealthConstants.mapToType[HealthConstants.TOTAL_CALORIES_BURNED]
+                    val stepsType = HealthConstants.mapToType[HealthConstants.STEPS]
+
+                    if (distanceType != null) {
+                        permList.add(HealthPermission.getReadPermission(distanceType))
+                    }
+                    if (caloriesType != null) {
+                        permList.add(HealthPermission.getReadPermission(caloriesType))
+                    }
+                    if (stepsType != null) {
+                        permList.add(HealthPermission.getReadPermission(stepsType))
+                    }
                 }
             }
         }
