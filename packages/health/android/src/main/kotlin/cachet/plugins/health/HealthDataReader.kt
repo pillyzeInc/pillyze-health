@@ -372,6 +372,7 @@ class HealthDataReader(
                     is ExerciseRouteResult.Data -> {
                         val route = routeResult.exerciseRoute
                         val locations = route.route
+                        Log.i("FLUTTER_HEALTH", "Route data found: ${locations.size} points for workout ${record.metadata.id}")
 
                         for (i in locations.indices) {
                             val location = locations[i]
@@ -402,15 +403,19 @@ class HealthDataReader(
                     }
                     is ExerciseRouteResult.ConsentRequired -> {
                         // User consent required to access route data
-                        Log.i("FLUTTER_HEALTH", "Route consent required for workout")
+                        Log.w("FLUTTER_HEALTH", "Route consent required for workout ${record.metadata.id} - user needs to grant permission")
                     }
                     is ExerciseRouteResult.NoData -> {
                         // No route data available for this workout
+                        Log.i("FLUTTER_HEALTH", "No route data available for workout ${record.metadata.id} - workout may not have GPS tracking")
                     }
                 }
             } catch (e: SecurityException) {
                 // Permission not granted for route data, will be null
-                Log.i("FLUTTER_HEALTH", "Route permission not granted for workout")
+                Log.w("FLUTTER_HEALTH", "Route permission not granted for workout ${record.metadata.id}: ${e.message}")
+            } catch (e: Exception) {
+                // Other errors
+                Log.e("FLUTTER_HEALTH", "Error reading route for workout ${record.metadata.id}: ${e.message}", e)
             }
 
             // Add final datapoint
