@@ -15,6 +15,7 @@ part 'src/functions.dart';
 part 'src/health_data_point.dart';
 part 'src/health_value_types.dart';
 part 'src/health_plugin.dart';
+part 'src/route_point.dart';
 part 'src/workout_summary.dart';
 
 part 'health.g.dart';

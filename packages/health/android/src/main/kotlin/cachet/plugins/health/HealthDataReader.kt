@@ -350,6 +350,30 @@ class HealthDataReader(
                 totalSteps += stepRec.count
             }
 
+            // Get exercise route data
+            val routeLocations = mutableListOf<Map<String, Any>>()
+            when (val routeResult = record.exerciseRouteResult) {
+                is ExerciseRouteResult.Data -> {
+                    val route = routeResult.exerciseRoute
+                    for (location in route.route) {
+                        routeLocations.add(
+                            mapOf(
+                                "latitude" to location.latitude,
+                                "longitude" to location.longitude,
+                                "altitude" to (location.altitude?.inMeters ?: 0.0),
+                                "timestamp" to location.time.toEpochMilli()
+                            )
+                        )
+                    }
+                }
+                is ExerciseRouteResult.ConsentRequired -> {
+                    // User consent required to access route data
+                }
+                is ExerciseRouteResult.NoData -> {
+                    // No route data available for this workout
+                }
+            }
+
             // Add final datapoint
             healthConnectData.add(
                 mapOf<String, Any?>(
@@ -370,6 +394,7 @@ class HealthDataReader(
                     "date_to" to rec.endTime.toEpochMilli(),
                     "source_id" to "",
                     "source_name" to record.metadata.dataOrigin.packageName,
+                    "route" to if (routeLocations.isNotEmpty()) routeLocations else null,
                 ),
             )
         }

@@ -1,5 +1,6 @@
 import Flutter
 import HealthKit
+import CoreLocation
 import UIKit
 
 /// Main plugin class that coordinates health data operations

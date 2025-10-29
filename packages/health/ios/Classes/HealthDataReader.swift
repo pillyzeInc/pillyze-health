@@ -1,5 +1,6 @@
 import HealthKit
 import Flutter
+import CoreLocation
 
 /// Class responsible for reading health data from HealthKit
 class HealthDataReader {
@@ -213,8 +214,13 @@ class HealthDataReader {
                     result(categories)
                 }
             } else if let workoutSamples = samples as? [HKWorkout] {
-                let dictionaries = workoutSamples.map { sample -> NSDictionary in
-                    return [
+                // Use DispatchGroup to handle async route fetching
+                let group = DispatchGroup()
+                var workoutDictionaries: [NSDictionary] = []
+
+                for sample in workoutSamples {
+                    group.enter()
+                    var workoutDict: [String: Any?] = [
                         "uuid": "\(sample.uuid)",
                         "workoutActivityType": self.workoutActivityTypeMap.first(where: {
                             $0.value == sample.workoutActivityType
@@ -234,10 +240,58 @@ class HealthDataReader {
                         "total_distance": sample.totalDistance != nil ? Int(sample.totalDistance!.doubleValue(for: HKUnit.meter())) : 0,
                         "total_energy_burned": sample.totalEnergyBurned != nil ? Int(sample.totalEnergyBurned!.doubleValue(for: HKUnit.kilocalorie())) : 0
                     ]
+
+                    // Query for workout route
+                    let routePredicate = HKQuery.predicateForObjects(from: sample)
+                    let routeQuery = HKSampleQuery(
+                        sampleType: HKSeriesType.workoutRoute(),
+                        predicate: routePredicate,
+                        limit: HKObjectQueryNoLimit,
+                        sortDescriptors: nil
+                    ) { (query, routeSamples, error) in
+                        guard let routeSamples = routeSamples as? [HKWorkoutRoute], let route = routeSamples.first else {
+                            workoutDictionaries.append(workoutDict as NSDictionary)
+                            group.leave()
+                            return
+                        }
+
+                        var routeLocations: [[String: Any]] = []
+                        let routeGroup = DispatchGroup()
+                        routeGroup.enter()
+
+                        let routePointsQuery = HKWorkoutRouteQuery(route: route) { (query, locations, done, error) in
+                            if let locations = locations {
+                                for location in locations {
+                                    routeLocations.append([
+                                        "latitude": location.coordinate.latitude,
+                                        "longitude": location.coordinate.longitude,
+                                        "altitude": location.altitude,
+                                        "timestamp": Int(location.timestamp.timeIntervalSince1970 * 1000)
+                                    ])
+                                }
+                            }
+
+                            if done {
+                                routeGroup.leave()
+                            }
+                        }
+
+                        self.healthStore.execute(routePointsQuery)
+
+                        routeGroup.notify(queue: .main) {
+                            if !routeLocations.isEmpty {
+                                workoutDict["route"] = routeLocations
+                            }
+                            workoutDictionaries.append(workoutDict as NSDictionary)
+                            group.leave()
+                        }
+                    }
+
+                    self.healthStore.execute(routeQuery)
                 }
-                
-                DispatchQueue.main.async {
-                    result(dictionaries)
+
+                group.notify(queue: .main) {
+                    result(workoutDictionaries)
                 }
             } else if let audiogramSamples = samples as? [HKAudiogramSample] {
                 let dictionaries = audiogramSamples.map { sample -> NSDictionary in

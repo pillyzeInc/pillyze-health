@@ -613,12 +613,30 @@ const _$MenstrualFlowEnumMap = {
   MenstrualFlow.spotting: 'spotting',
 };
 
+RoutePoint _$RoutePointFromJson(Map<String, dynamic> json) => RoutePoint(
+      latitude: (json['latitude'] as num).toDouble(),
+      longitude: (json['longitude'] as num).toDouble(),
+      altitude: (json['altitude'] as num?)?.toDouble(),
+      timestamp: DateTime.parse(json['timestamp'] as String),
+    );
+
+Map<String, dynamic> _$RoutePointToJson(RoutePoint instance) =>
+    <String, dynamic>{
+      'latitude': instance.latitude,
+      'longitude': instance.longitude,
+      if (instance.altitude case final value?) 'altitude': value,
+      'timestamp': instance.timestamp.toIso8601String(),
+    };
+
 WorkoutSummary _$WorkoutSummaryFromJson(Map<String, dynamic> json) =>
     WorkoutSummary(
       workoutType: json['workoutType'] as String,
       totalDistance: json['totalDistance'] as num,
       totalEnergyBurned: json['totalEnergyBurned'] as num,
       totalSteps: json['totalSteps'] as num,
+      route: (json['route'] as List<dynamic>?)
+          ?.map((e) => RoutePoint.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
 
 Map<String, dynamic> _$WorkoutSummaryToJson(WorkoutSummary instance) =>
@@ -627,4 +645,6 @@ Map<String, dynamic> _$WorkoutSummaryToJson(WorkoutSummary instance) =>
       'totalDistance': instance.totalDistance,
       'totalEnergyBurned': instance.totalEnergyBurned,
       'totalSteps': instance.totalSteps,
+      if (instance.route?.map((e) => e.toJson()).toList() case final value?)
+        'route': value,
     };
