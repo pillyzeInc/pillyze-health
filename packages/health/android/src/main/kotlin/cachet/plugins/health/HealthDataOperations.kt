@@ -259,11 +259,11 @@ class HealthDataOperations(
      * @return List<String>? Formatted permission strings, or null if invalid input
      */
     private fun preparePermissionsListInternal(
-        types: List<String>, 
+        types: List<String>,
         permissions: List<Int>
     ): List<String>? {
         val permList = mutableListOf<String>()
-        
+
         for ((i, typeKey) in types.withIndex()) {
             if (!HealthConstants.mapToType.containsKey(typeKey)) {
                 Log.w(
@@ -272,15 +272,19 @@ class HealthDataOperations(
                 )
                 return null
             }
-            
+
             val access = permissions[i]
             val dataType = HealthConstants.mapToType[typeKey]!!
-            
+
             if (access == 0) {
                 // Read permission only
                 permList.add(
                     HealthPermission.getReadPermission(dataType),
                 )
+                // If WORKOUT is requested, also add exercise route read permission
+                if (typeKey == HealthConstants.WORKOUT) {
+                    permList.add("android.permission.health.READ_EXERCISE_ROUTES")
+                }
             } else {
                 // Read and write permissions
                 permList.addAll(
@@ -289,9 +293,13 @@ class HealthDataOperations(
                         HealthPermission.getWritePermission(dataType),
                     ),
                 )
+                // If WORKOUT is requested, also add exercise route read permission
+                if (typeKey == HealthConstants.WORKOUT) {
+                    permList.add("android.permission.health.READ_EXERCISE_ROUTES")
+                }
             }
         }
-        
+
         return permList
     }
 }
