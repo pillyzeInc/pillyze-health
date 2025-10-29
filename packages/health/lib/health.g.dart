@@ -618,6 +618,7 @@ RoutePoint _$RoutePointFromJson(Map<String, dynamic> json) => RoutePoint(
       longitude: (json['longitude'] as num).toDouble(),
       altitude: (json['altitude'] as num?)?.toDouble(),
       timestamp: DateTime.parse(json['timestamp'] as String),
+      speed: (json['speed'] as num?)?.toDouble(),
     );
 
 Map<String, dynamic> _$RoutePointToJson(RoutePoint instance) =>
@@ -626,6 +627,7 @@ Map<String, dynamic> _$RoutePointToJson(RoutePoint instance) =>
       'longitude': instance.longitude,
       if (instance.altitude case final value?) 'altitude': value,
       'timestamp': instance.timestamp.toIso8601String(),
+      if (instance.speed case final value?) 'speed': value,
     };
 
 WorkoutSummary _$WorkoutSummaryFromJson(Map<String, dynamic> json) =>

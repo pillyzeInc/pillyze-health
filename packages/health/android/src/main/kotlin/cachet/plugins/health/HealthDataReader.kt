@@ -371,15 +371,33 @@ class HealthDataReader(
                 when (val routeResult = record.exerciseRouteResult) {
                     is ExerciseRouteResult.Data -> {
                         val route = routeResult.exerciseRoute
-                        for (location in route.route) {
-                            routeLocations.add(
-                                mapOf(
-                                    "latitude" to location.latitude,
-                                    "longitude" to location.longitude,
-                                    "altitude" to (location.altitude?.inMeters ?: 0.0),
-                                    "timestamp" to location.time.toEpochMilli()
-                                )
+                        val locations = route.route
+
+                        for (i in locations.indices) {
+                            val location = locations[i]
+                            val locationMap = mutableMapOf<String, Any>(
+                                "latitude" to location.latitude,
+                                "longitude" to location.longitude,
+                                "altitude" to (location.altitude?.inMeters ?: 0.0),
+                                "timestamp" to location.time.toEpochMilli()
                             )
+
+                            // Calculate speed from consecutive points
+                            if (i > 0) {
+                                val prevLocation = locations[i - 1]
+                                val distance = calculateDistance(
+                                    prevLocation.latitude, prevLocation.longitude,
+                                    location.latitude, location.longitude
+                                )
+                                val timeDiff = (location.time.toEpochMilli() - prevLocation.time.toEpochMilli()) / 1000.0
+
+                                if (timeDiff > 0) {
+                                    val speed = distance / timeDiff // meters per second
+                                    locationMap["speed"] = speed
+                                }
+                            }
+
+                            routeLocations.add(locationMap)
                         }
                     }
                     is ExerciseRouteResult.ConsentRequired -> {
@@ -477,5 +495,20 @@ class HealthDataReader(
         private const val SLEEP_OUT_OF_BED = "SLEEP_OUT_OF_BED"
         private const val SLEEP_UNKNOWN = "SLEEP_UNKNOWN"
         private const val WORKOUT = "WORKOUT"
+
+        /**
+         * Calculate distance between two coordinates using Haversine formula
+         * @return distance in meters
+         */
+        private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+            val earthRadius = 6371000.0 // meters
+            val dLat = Math.toRadians(lat2 - lat1)
+            val dLon = Math.toRadians(lon2 - lon1)
+            val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+            val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+            return earthRadius * c
+        }
     }
 }

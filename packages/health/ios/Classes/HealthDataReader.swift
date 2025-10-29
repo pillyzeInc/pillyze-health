@@ -278,12 +278,19 @@ class HealthDataReader {
 
                             if let locations = locations {
                                 for location in locations {
-                                    routeLocations.append([
+                                    var locationDict: [String: Any] = [
                                         "latitude": location.coordinate.latitude,
                                         "longitude": location.coordinate.longitude,
                                         "altitude": location.altitude,
                                         "timestamp": Int(location.timestamp.timeIntervalSince1970 * 1000)
-                                    ])
+                                    ]
+
+                                    // Add speed if available (speed < 0 means invalid)
+                                    if location.speed >= 0 {
+                                        locationDict["speed"] = location.speed
+                                    }
+
+                                    routeLocations.append(locationDict)
                                 }
                             }
 

@@ -7,6 +7,7 @@ part of '../health.dart';
 ///  * [longitude] - The longitude coordinate
 ///  * [altitude] - The altitude in meters (optional, can be null)
 ///  * [timestamp] - The timestamp when this coordinate was recorded
+///  * [speed] - The speed in meters per second (optional, can be null)
 @JsonSerializable(includeIfNull: false, explicitToJson: true)
 class RoutePoint {
   /// Latitude coordinate
@@ -21,11 +22,15 @@ class RoutePoint {
   /// Timestamp when this coordinate was recorded
   DateTime timestamp;
 
+  /// Speed in meters per second (optional)
+  double? speed;
+
   RoutePoint({
     required this.latitude,
     required this.longitude,
     this.altitude,
     required this.timestamp,
+    this.speed,
   });
 
   /// Create a [RoutePoint] from a native data point format
@@ -39,6 +44,9 @@ class RoutePoint {
       timestamp: DateTime.fromMillisecondsSinceEpoch(
         dataPoint['timestamp'] as int,
       ),
+      speed: dataPoint['speed'] != null
+          ? (dataPoint['speed'] as num).toDouble()
+          : null,
     );
   }
 
@@ -54,7 +62,8 @@ class RoutePoint {
       'latitude: $latitude, '
       'longitude: $longitude, '
       'altitude: $altitude, '
-      'timestamp: $timestamp';
+      'timestamp: $timestamp, '
+      'speed: $speed';
 
   @override
   bool operator ==(Object other) =>
@@ -64,12 +73,14 @@ class RoutePoint {
           latitude == other.latitude &&
           longitude == other.longitude &&
           altitude == other.altitude &&
-          timestamp == other.timestamp;
+          timestamp == other.timestamp &&
+          speed == other.speed;
 
   @override
   int get hashCode =>
       latitude.hashCode ^
       longitude.hashCode ^
       altitude.hashCode ^
-      timestamp.hashCode;
+      timestamp.hashCode ^
+      speed.hashCode;
 }
