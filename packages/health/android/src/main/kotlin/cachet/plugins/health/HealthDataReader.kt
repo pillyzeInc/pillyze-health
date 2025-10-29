@@ -304,74 +304,95 @@ class HealthDataReader(
 
         for (rec in filteredRecords) {
             val record = rec as ExerciseSessionRecord
-            
-            // Get distance data
-            val distanceRequest = healthConnectClient.readRecords(
-                ReadRecordsRequest(
-                    recordType = DistanceRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(
-                        record.startTime,
-                        record.endTime,
-                    ),
-                ),
-            )
+
+            // Get distance data (with permission check)
             var totalDistance = 0.0
-            for (distanceRec in distanceRequest.records) {
-                totalDistance += distanceRec.distance.inMeters
+            try {
+                val distanceRequest = healthConnectClient.readRecords(
+                    ReadRecordsRequest(
+                        recordType = DistanceRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(
+                            record.startTime,
+                            record.endTime,
+                        ),
+                    ),
+                )
+                for (distanceRec in distanceRequest.records) {
+                    totalDistance += distanceRec.distance.inMeters
+                }
+            } catch (e: SecurityException) {
+                // Permission not granted for distance data, will be null
+                Log.i("FLUTTER_HEALTH", "Distance permission not granted for workout")
             }
 
-            // Get energy burned data
-            val energyBurnedRequest = healthConnectClient.readRecords(
-                ReadRecordsRequest(
-                    recordType = TotalCaloriesBurnedRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(
-                        record.startTime,
-                        record.endTime,
-                    ),
-                ),
-            )
+            // Get energy burned data (with permission check)
             var totalEnergyBurned = 0.0
-            for (energyBurnedRec in energyBurnedRequest.records) {
-                totalEnergyBurned += energyBurnedRec.energy.inKilocalories
-            }
-
-            // Get steps data
-            val stepRequest = healthConnectClient.readRecords(
-                ReadRecordsRequest(
-                    recordType = StepsRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(
-                        record.startTime,
-                        record.endTime
+            try {
+                val energyBurnedRequest = healthConnectClient.readRecords(
+                    ReadRecordsRequest(
+                        recordType = TotalCaloriesBurnedRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(
+                            record.startTime,
+                            record.endTime,
+                        ),
                     ),
-                ),
-            )
-            var totalSteps = 0.0
-            for (stepRec in stepRequest.records) {
-                totalSteps += stepRec.count
+                )
+                for (energyBurnedRec in energyBurnedRequest.records) {
+                    totalEnergyBurned += energyBurnedRec.energy.inKilocalories
+                }
+            } catch (e: SecurityException) {
+                // Permission not granted for calories data, will be null
+                Log.i("FLUTTER_HEALTH", "Calories permission not granted for workout")
             }
 
-            // Get exercise route data
+            // Get steps data (with permission check)
+            var totalSteps = 0.0
+            try {
+                val stepRequest = healthConnectClient.readRecords(
+                    ReadRecordsRequest(
+                        recordType = StepsRecord::class,
+                        timeRangeFilter = TimeRangeFilter.between(
+                            record.startTime,
+                            record.endTime
+                        ),
+                    ),
+                )
+                for (stepRec in stepRequest.records) {
+                    totalSteps += stepRec.count
+                }
+            } catch (e: SecurityException) {
+                // Permission not granted for steps data, will be null
+                Log.i("FLUTTER_HEALTH", "Steps permission not granted for workout")
+            }
+
+            // Get exercise route data (with permission check)
             val routeLocations = mutableListOf<Map<String, Any>>()
-            when (val routeResult = record.exerciseRouteResult) {
-                is ExerciseRouteResult.Data -> {
-                    val route = routeResult.exerciseRoute
-                    for (location in route.route) {
-                        routeLocations.add(
-                            mapOf(
-                                "latitude" to location.latitude,
-                                "longitude" to location.longitude,
-                                "altitude" to (location.altitude?.inMeters ?: 0.0),
-                                "timestamp" to location.time.toEpochMilli()
+            try {
+                when (val routeResult = record.exerciseRouteResult) {
+                    is ExerciseRouteResult.Data -> {
+                        val route = routeResult.exerciseRoute
+                        for (location in route.route) {
+                            routeLocations.add(
+                                mapOf(
+                                    "latitude" to location.latitude,
+                                    "longitude" to location.longitude,
+                                    "altitude" to (location.altitude?.inMeters ?: 0.0),
+                                    "timestamp" to location.time.toEpochMilli()
+                                )
                             )
-                        )
+                        }
+                    }
+                    is ExerciseRouteResult.ConsentRequired -> {
+                        // User consent required to access route data
+                        Log.i("FLUTTER_HEALTH", "Route consent required for workout")
+                    }
+                    is ExerciseRouteResult.NoData -> {
+                        // No route data available for this workout
                     }
                 }
-                is ExerciseRouteResult.ConsentRequired -> {
-                    // User consent required to access route data
-                }
-                is ExerciseRouteResult.NoData -> {
-                    // No route data available for this workout
-                }
+            } catch (e: SecurityException) {
+                // Permission not granted for route data, will be null
+                Log.i("FLUTTER_HEALTH", "Route permission not granted for workout")
             }
 
             // Add final datapoint

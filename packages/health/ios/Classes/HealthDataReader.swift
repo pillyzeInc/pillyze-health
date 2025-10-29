@@ -241,7 +241,7 @@ class HealthDataReader {
                         "total_energy_burned": sample.totalEnergyBurned != nil ? Int(sample.totalEnergyBurned!.doubleValue(for: HKUnit.kilocalorie())) : 0
                     ]
 
-                    // Query for workout route
+                    // Query for workout route (with error handling)
                     let routePredicate = HKQuery.predicateForObjects(from: sample)
                     let routeQuery = HKSampleQuery(
                         sampleType: HKSeriesType.workoutRoute(),
@@ -249,7 +249,16 @@ class HealthDataReader {
                         limit: HKObjectQueryNoLimit,
                         sortDescriptors: nil
                     ) { (query, routeSamples, error) in
+                        // Check for permission error or no route data
+                        if let error = error {
+                            print("Route query error (likely permission issue): \(error.localizedDescription)")
+                            workoutDictionaries.append(workoutDict as NSDictionary)
+                            group.leave()
+                            return
+                        }
+
                         guard let routeSamples = routeSamples as? [HKWorkoutRoute], let route = routeSamples.first else {
+                            // No route data available for this workout
                             workoutDictionaries.append(workoutDict as NSDictionary)
                             group.leave()
                             return
@@ -260,6 +269,13 @@ class HealthDataReader {
                         routeGroup.enter()
 
                         let routePointsQuery = HKWorkoutRouteQuery(route: route) { (query, locations, done, error) in
+                            // Handle errors in route points query
+                            if let error = error {
+                                print("Route points query error: \(error.localizedDescription)")
+                                routeGroup.leave()
+                                return
+                            }
+
                             if let locations = locations {
                                 for location in locations {
                                     routeLocations.append([
